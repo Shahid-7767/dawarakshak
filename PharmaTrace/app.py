@@ -17,20 +17,18 @@ from werkzeug.utils import secure_filename
 
 from blockchain.chain import Blockchain
 from database.db import init_db
-
 from modules.medicine import (
     register_medicine,
     list_medicines,
     get_medicine
 )
-
 from modules.verification import verify_chain
 from config import Config
 
 
-# =====================================
-# FLASK APPLICATION
-# =====================================
+# --------------------------------------------------
+# FLASK APPLICATION CONFIGURATION
+# --------------------------------------------------
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -42,21 +40,25 @@ app.wsgi_app = ProxyFix(
     x_host=1
 )
 
-app.config["PREFERRED_URL_SCHEME"] = "https"
+# Live Render website URL
+PUBLIC_BASE_URL = os.environ.get(
+    "PUBLIC_BASE_URL",
+    "https://pharmatrace-blockchain.onrender.com"
+).rstrip("/")
 
 
-# =====================================
-# DATABASE AND BLOCKCHAIN
-# =====================================
+# --------------------------------------------------
+# DATABASE AND BLOCKCHAIN INITIALIZATION
+# --------------------------------------------------
 
 with app.app_context():
     init_db()
     chain = Blockchain()
 
 
-# =====================================
+# --------------------------------------------------
 # QR CODE GENERATION
-# =====================================
+# --------------------------------------------------
 
 def generate_qr(medicine_id):
 
@@ -69,19 +71,15 @@ def generate_qr(medicine_id):
 
     safe_id = secure_filename(medicine_id)
 
-    # Public Render URL when deployed
-    public_base_url = os.environ.get(
-        "RENDER_EXTERNAL_URL", ""
-    ).rstrip("/")
+    # Generate the medicine verification URL
+    medicine_path = url_for(
+        "medicine_detail",
+        batch_id=medicine_id
+    )
 
-    # Local URL when running on laptop
-    if public_base_url:
-        base_url = public_base_url
-    else:
-        base_url = "http://10.129.253.83:5000"
+    qr_url = f"{PUBLIC_BASE_URL}{medicine_path}"
 
-    qr_url = f"{base_url}/medicine/{medicine_id}"
-
+    # Create QR code
     qr = qrcode.make(qr_url)
 
     filename = f"{safe_id}.png"
@@ -93,15 +91,15 @@ def generate_qr(medicine_id):
 
     qr.save(filepath)
 
-    print("QR SAVED:", filepath)
     print("QR URL:", qr_url)
+    print("QR SAVED:", filepath)
 
     return filename
 
 
-# =====================================
+# --------------------------------------------------
 # DASHBOARD
-# =====================================
+# --------------------------------------------------
 
 @app.route("/")
 def dashboard():
@@ -125,6 +123,7 @@ def dashboard():
         )
 
         if os.path.isfile(filepath):
+
             qr_images[batch_id] = filename
 
     return render_template(
@@ -137,9 +136,9 @@ def dashboard():
     )
 
 
-# =====================================
+# --------------------------------------------------
 # REGISTER MEDICINE
-# =====================================
+# --------------------------------------------------
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -149,23 +148,28 @@ def register():
         data = {
 
             "medicine_name": request.form.get(
-                "medicine_name", ""
+                "medicine_name",
+                ""
             ).strip(),
 
             "batch_id": request.form.get(
-                "batch_id", ""
+                "batch_id",
+                ""
             ).strip(),
 
             "manufacturer": request.form.get(
-                "manufacturer", ""
+                "manufacturer",
+                ""
             ).strip(),
 
             "manufactured_on": request.form.get(
-                "manufactured_on", ""
+                "manufactured_on",
+                ""
             ).strip(),
 
             "expires_on": request.form.get(
-                "expires_on", ""
+                "expires_on",
+                ""
             ).strip()
         }
 
@@ -196,21 +200,18 @@ def register():
 
         except Exception as exc:
 
-            print("REGISTRATION ERROR:", str(exc))
+            flash(str(exc), "error")
 
-            flash(
-                f"Error: {str(exc)}",
-                "error"
-            )
-
-        return redirect(url_for("dashboard"))
+        return redirect(
+            url_for("dashboard")
+        )
 
     return render_template("register.html")
 
 
-# =====================================
+# --------------------------------------------------
 # MEDICINE VERIFICATION
-# =====================================
+# --------------------------------------------------
 
 @app.route("/medicine/<batch_id>")
 def medicine_detail(batch_id):
@@ -225,7 +226,9 @@ def medicine_detail(batch_id):
             "error"
         )
 
-        return redirect(url_for("dashboard"))
+        return redirect(
+            url_for("dashboard")
+        )
 
     return render_template(
         "medicine.html",
@@ -233,9 +236,9 @@ def medicine_detail(batch_id):
     )
 
 
-# =====================================
+# --------------------------------------------------
 # CONSENSUS DEMONSTRATION
-# =====================================
+# --------------------------------------------------
 
 @app.route(
     "/api/consensus/demo",
@@ -270,9 +273,9 @@ def consensus_demo():
     return jsonify(result)
 
 
-# =====================================
+# --------------------------------------------------
 # BLOCKCHAIN API
-# =====================================
+# --------------------------------------------------
 
 @app.route("/api/chain")
 def chain_api():
@@ -289,9 +292,9 @@ def chain_api():
     })
 
 
-# =====================================
+# --------------------------------------------------
 # HEALTH CHECK
-# =====================================
+# --------------------------------------------------
 
 @app.route("/health")
 def health():
@@ -305,14 +308,16 @@ def health():
     })
 
 
-# =====================================
+# --------------------------------------------------
 # RUN APPLICATION
-# =====================================
+# --------------------------------------------------
 
 if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000)),
+        port=int(
+            os.environ.get("PORT", 5000)
+        ),
         debug=False
     )
