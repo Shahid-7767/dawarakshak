@@ -14,8 +14,8 @@ def get_db():
 
     return psycopg.connect(
         database_url,
-        row_factory=dict_row
-          connect_timeout=10
+        row_factory=dict_row,
+        connect_timeout=10
     )
 
 
