@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}PharmaTrace{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">P</span><div><b>PharmaTrace</b><small>TRUST IN EVERY DOSE</small></div></div>
+    <nav><a href="{{ url_for('dashboard') }}">◫ &nbsp; Overview</a><a href="{{ url_for('register') }}">＋ &nbsp; Register medicine</a></nav>
+    <div class="side-note"><span class="live-dot"></span> Local network active</div>
+  </aside>
+  <main class="main">
+    <header><div><span class="eyebrow">PHARMACEUTICAL TRACEABILITY</span><h1>{% block heading %}Overview{% endblock %}</h1></div><span class="top-chip">● Demo environment</span></header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+    <footer>PharmaTrace · Educational prototype · Not for clinical or regulatory decisions</footer>
+  </main>
+</body>
+</html>

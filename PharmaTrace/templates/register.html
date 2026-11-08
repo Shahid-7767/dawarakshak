@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Register medicine · PharmaTrace{% endblock %}
+{% block heading %}Register a medicine{% endblock %}
+{% block content %}
+<div class="form-layout"><section class="panel form-panel"><span class="eyebrow">MANUFACTURER WORKFLOW · STEP 01</span><h3>Batch information</h3><p class="muted">Submit a medicine batch. The starter system requests four validator approvals before committing it to the ledger.</p>
+<form method="post">
+ <label>Medicine name<input name="medicine_name" placeholder="e.g. Paracetamol 500 mg" required></label>
+ <label>Unique batch ID<input name="batch_id" placeholder="e.g. PARA-2026-001" required></label>
+ <label>Manufacturer name<input name="manufacturer" placeholder="e.g. ABC Pharmaceuticals" required></label>
+ <div class="two-col"><label>Manufacturing date<input type="date" name="manufactured_on" required></label><label>Expiry date<input type="date" name="expires_on" required></label></div>
+ <div class="notice">ⓘ Demo note: this prototype records the information you enter. It does not independently verify manufacturer identity or physical medicine contents.</div>
+ <button class="btn primary" type="submit">Submit for validator consensus →</button>
+</form></section>
+<aside class="panel side-panel"><span class="eyebrow">CONSENSUS POLICY</span><h3>3 of 4 approvals</h3><div class="big-number">75%</div><p class="muted">A batch is committed only after the configured approval threshold is met.</p><div class="mini-validators"><span>✓ Alpha</span><span>✓ Beta</span><span>✓ Gamma</span><span>✓ Delta</span></div></aside></div>
+{% endblock %}

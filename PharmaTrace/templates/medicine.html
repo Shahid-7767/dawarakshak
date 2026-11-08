@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ medicine.medicine_name }} · PharmaTrace{% endblock %}
+{% block heading %}Medicine record{% endblock %}
+{% block content %}
+<section class="panel detail-panel"><span class="eyebrow">REGISTERED BATCH</span><h2>{{ medicine.medicine_name }}</h2><span class="status-pill">● Recorded in ledger</span>
+<div class="detail-grid"><div><small>BATCH ID</small><b class="mono">{{ medicine.batch_id }}</b></div><div><small>MANUFACTURER</small><b>{{ medicine.manufacturer }}</b></div><div><small>MANUFACTURED</small><b>{{ medicine.manufactured_on }}</b></div><div><small>EXPIRY</small><b>{{ medicine.expires_on }}</b></div><div><small>BLOCK NUMBER</small><b>#{{ medicine.block_index }}</b></div><div><small>BLOCK HASH</small><b class="mono hash">{{ medicine.block_hash }}</b></div></div>
+<a class="btn secondary" href="{{ url_for('dashboard') }}">← Back to overview</a></section>
+{% endblock %}
