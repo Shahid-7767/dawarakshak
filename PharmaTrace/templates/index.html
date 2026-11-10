@@ -12,17 +12,20 @@
         <p>Register medicine batches and record approved events in a tamper-evident ledger.</p>
         <a class="btn primary" href="{{ url_for('register') }}">＋ Register a medicine</a>
     </div>
+
     <div class="hero-orbit">
         <div class="orbit">P</div>
         <span class="orbit-label">SHA-256 LEDGER</span>
     </div>
 </section>
 
+
 <section class="stats">
+
     <article class="stat">
         <span>REGISTERED BATCHES</span>
         <strong>{{ medicines|length }}</strong>
-        <small>Stored in local database</small>
+        <small>Stored in PostgreSQL</small>
     </article>
 
     <article class="stat">
@@ -44,7 +47,9 @@
         </strong>
         <small>Hash-link check</small>
     </article>
+
 </section>
+
 
 <section class="panel">
 
@@ -53,13 +58,19 @@
             <span class="eyebrow">MEDICINE REGISTRY</span>
             <h3>Recently registered batches</h3>
         </div>
-        <a href="{{ url_for('register') }}" class="text-link">＋ Add batch</a>
+
+        <a href="{{ url_for('register') }}" class="text-link">
+            ＋ Add batch
+        </a>
     </div>
+
 
     {% if medicines %}
 
     <div class="table-wrap">
+
         <table>
+
             <thead>
                 <tr>
                     <th>Medicine</th>
@@ -71,16 +82,28 @@
                 </tr>
             </thead>
 
+
             <tbody>
+
                 {% for m in medicines %}
+
                 <tr>
-                    <td><b>{{ m.medicine_name }}</b></td>
 
-                    <td class="mono">{{ m.batch_id }}</td>
+                    <td>
+                        <b>{{ m.medicine_name }}</b>
+                    </td>
 
-                    <td>{{ m.manufacturer }}</td>
+                    <td class="mono">
+                        {{ m.batch_id }}
+                    </td>
 
-                    <td>{{ m.expires_on }}</td>
+                    <td>
+                        {{ m.manufacturer }}
+                    </td>
+
+                    <td>
+                        {{ m.expires_on }}
+                    </td>
 
                     <td>
                         <a class="text-link"
@@ -89,76 +112,103 @@
                         </a>
                     </td>
 
+
                     <td>
-                        {% if m.batch_id in qr_images %}
 
-                            <a href="{{ url_for('static', filename='qr/' ~ qr_images[m.batch_id]) }}"
-                               target="_blank">
-                                <img
-                                    src="{{ url_for('static', filename='qr/' ~ qr_images[m.batch_id]) }}"
-                                    alt="QR Code for {{ m.medicine_name }}"
-                                    width="100"
-                                    height="100"
-                                >
-                            </a>
+                        <a href="{{ url_for('medicine_qr', batch_id=m.batch_id) }}"
+                           target="_blank">
 
-                            <br>
+                            <img
+                                src="{{ url_for('medicine_qr', batch_id=m.batch_id) }}"
+                                alt="QR Code for {{ m.medicine_name }}"
+                                width="100"
+                                height="100"
+                            >
 
-                            <a class="text-link"
-                               href="{{ url_for('static', filename='qr/' ~ qr_images[m.batch_id]) }}"
-                               download>
-                                Download QR
-                            </a>
+                        </a>
 
-                        {% else %}
+                        <br>
 
-                            <span class="muted">QR unavailable</span>
+                        <a class="text-link"
+                           href="{{ url_for('medicine_qr', batch_id=m.batch_id, download=1) }}">
 
-                        {% endif %}
+                            Download QR
+
+                        </a>
+
                     </td>
 
                 </tr>
+
                 {% endfor %}
+
             </tbody>
+
         </table>
+
     </div>
+
 
     {% else %}
 
     <div class="empty">
+
         <div class="empty-icon">▤</div>
+
         <b>No medicine batches yet</b>
-        <p>Register your first batch to create a consensus-approved blockchain record.</p>
-        <a class="btn primary" href="{{ url_for('register') }}">Register first batch</a>
+
+        <p>
+            Register your first batch to create
+            a consensus-approved blockchain record.
+        </p>
+
+        <a class="btn primary" href="{{ url_for('register') }}">
+            Register first batch
+        </a>
+
     </div>
 
     {% endif %}
 
 </section>
 
+
 <section class="panel consensus-panel">
 
     <div class="section-head">
+
         <div>
             <span class="eyebrow">NETWORK STATUS</span>
             <h3>Four-validator consensus</h3>
         </div>
+
         <span class="status-pill">3 OF 4 REQUIRED</span>
+
     </div>
+
 
     <div class="validators">
+
         {% for v in validators %}
+
         <div class="validator">
+
             <span class="validator-icon">✓</span>
+
             <b>{{ v.display_name }}</b>
+
             <small>{{ v.validator_id }}</small>
+
         </div>
+
         {% endfor %}
+
     </div>
 
+
     <p class="muted">
-        Current starter implementation uses a deterministic local validator simulation.
-        It is not yet a distributed blockchain network.
+        Current starter implementation uses a deterministic local
+        validator simulation. It is not yet a distributed blockchain network.
     </p>
 
 </section>

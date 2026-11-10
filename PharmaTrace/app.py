@@ -1,5 +1,7 @@
 
 import os
+import traceback
+import io
 import qrcode
 
 from flask import (
@@ -9,7 +11,8 @@ from flask import (
     redirect,
     url_for,
     flash,
-    jsonify
+    jsonify,
+    send_file
 )
 
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -40,7 +43,6 @@ app.wsgi_app = ProxyFix(
     x_host=1
 )
 
-# Live Render website URL
 PUBLIC_BASE_URL = os.environ.get(
     "PUBLIC_BASE_URL",
     "https://pharmatrace-blockchain.onrender.com"
@@ -57,47 +59,6 @@ with app.app_context():
 
 
 # --------------------------------------------------
-# QR CODE GENERATION
-# --------------------------------------------------
-
-def generate_qr(medicine_id):
-
-    folder = os.path.join(
-        app.static_folder,
-        "qr"
-    )
-
-    os.makedirs(folder, exist_ok=True)
-
-    safe_id = secure_filename(medicine_id)
-
-    # Generate the medicine verification URL
-    medicine_path = url_for(
-        "medicine_detail",
-        batch_id=medicine_id
-    )
-
-    qr_url = f"{PUBLIC_BASE_URL}{medicine_path}"
-
-    # Create QR code
-    qr = qrcode.make(qr_url)
-
-    filename = f"{safe_id}.png"
-
-    filepath = os.path.join(
-        folder,
-        filename
-    )
-
-    qr.save(filepath)
-
-    print("QR URL:", qr_url)
-    print("QR SAVED:", filepath)
-
-    return filename
-
-
-# --------------------------------------------------
 # DASHBOARD
 # --------------------------------------------------
 
@@ -106,30 +67,9 @@ def dashboard():
 
     medicines = list_medicines()
 
-    qr_images = {}
-
-    for medicine in medicines:
-
-        batch_id = medicine["batch_id"]
-
-        filename = (
-            f"{secure_filename(batch_id)}.png"
-        )
-
-        filepath = os.path.join(
-            app.static_folder,
-            "qr",
-            filename
-        )
-
-        if os.path.isfile(filepath):
-
-            qr_images[batch_id] = filename
-
     return render_template(
         "index.html",
         medicines=medicines,
-        qr_images=qr_images,
         chain=chain,
         chain_valid=verify_chain(chain),
         validators=chain.consensus.validators
@@ -143,46 +83,41 @@ def dashboard():
 @app.route("/register", methods=["GET", "POST"])
 def register():
 
+    print("REGISTER ROUTE CALLED", flush=True)
+
     if request.method == "POST":
 
         data = {
-
             "medicine_name": request.form.get(
-                "medicine_name",
-                ""
+                "medicine_name", ""
             ).strip(),
 
             "batch_id": request.form.get(
-                "batch_id",
-                ""
+                "batch_id", ""
             ).strip(),
 
             "manufacturer": request.form.get(
-                "manufacturer",
-                ""
+                "manufacturer", ""
             ).strip(),
 
             "manufactured_on": request.form.get(
-                "manufactured_on",
-                ""
+                "manufactured_on", ""
             ).strip(),
 
             "expires_on": request.form.get(
-                "expires_on",
-                ""
+                "expires_on", ""
             ).strip()
         }
 
+        print("REGISTRATION DATA RECEIVED", flush=True)
+
         try:
 
-            result = register_medicine(
-                data,
-                chain
-            )
+            result = register_medicine(data, chain)
+
+            print("REGISTRATION RESULT:", result, flush=True)
 
             if result["accepted"]:
-
-                generate_qr(data["batch_id"])
 
                 flash(
                     "Medicine registered successfully "
@@ -200,13 +135,60 @@ def register():
 
         except Exception as exc:
 
+            print(
+                "\n========== MEDICINE REGISTRATION ERROR ==========",
+                flush=True
+            )
+
+            traceback.print_exc()
+
+            print(
+                "=================================================",
+                flush=True
+            )
+
             flash(str(exc), "error")
 
-        return redirect(
-            url_for("dashboard")
-        )
+        return redirect(url_for("dashboard"))
 
     return render_template("register.html")
+
+
+# --------------------------------------------------
+# DYNAMIC QR CODE GENERATION
+# --------------------------------------------------
+
+@app.route("/qr/<batch_id>")
+def medicine_qr(batch_id):
+
+    medicine = get_medicine(batch_id)
+
+    if not medicine:
+        return "Medicine not found", 404
+
+    medicine_path = url_for(
+        "medicine_detail",
+        batch_id=batch_id
+    )
+
+    qr_url = f"{PUBLIC_BASE_URL}{medicine_path}"
+
+    qr = qrcode.make(qr_url)
+
+    qr_buffer = io.BytesIO()
+
+    qr.save(qr_buffer, format="PNG")
+
+    qr_buffer.seek(0)
+
+    print("QR URL:", qr_url, flush=True)
+
+    return send_file(
+        qr_buffer,
+        mimetype="image/png",
+        download_name=f"{secure_filename(batch_id)}.png",
+        as_attachment=request.args.get("download") == "1"
+    )
 
 
 # --------------------------------------------------
@@ -226,9 +208,7 @@ def medicine_detail(batch_id):
             "error"
         )
 
-        return redirect(
-            url_for("dashboard")
-        )
+        return redirect(url_for("dashboard"))
 
     return render_template(
         "medicine.html",
@@ -246,9 +226,7 @@ def medicine_detail(batch_id):
 )
 def consensus_demo():
 
-    payload = request.get_json(
-        silent=True
-    ) or {}
+    payload = request.get_json(silent=True) or {}
 
     votes = payload.get(
         "votes",
@@ -258,10 +236,7 @@ def consensus_demo():
     if (
         not isinstance(votes, list)
         or len(votes) != 4
-        or not all(
-            type(vote) is bool
-            for vote in votes
-        )
+        or not all(type(vote) is bool for vote in votes)
     ):
 
         return jsonify({
@@ -300,11 +275,8 @@ def chain_api():
 def health():
 
     return jsonify({
-
         "status": "ok",
-
         "service": "PharmaTrace"
-
     })
 
 
@@ -316,8 +288,6 @@ if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=int(
-            os.environ.get("PORT", 5000)
-        ),
+        port=int(os.environ.get("PORT", 5000)),
         debug=False
     )
